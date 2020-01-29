@@ -1,0 +1,104 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters":{
+        "location": {
+            "type": "String"
+        },
+        "ADLS_Name":{
+                "type": "String"
+        },
+        "ADF_Name":{
+
+                "type": "String"
+        },
+        "SQLServer_Name":{
+                "type": "String"
+        },
+        "ASDW_Name":{
+                "type": "String"
+        },
+        "administratorLogin": {
+            "type": "String"
+        },
+        "administratorLoginPassword": {
+            "type": "SecureString"
+        },
+        "collation": {
+                "type": "String"
+        }
+    },
+    "resources":[
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[parameters('ADLS_Name')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [],
+            "tags": {},
+            "sku": {
+                "name": "Standard_RAGRS"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot",
+                "supportsHttpsTrafficOnly": true,
+                "isHnsEnabled": true
+            }
+        },
+        {
+            "type": "Microsoft.DataFactory/factories",
+            "apiVersion": "2018-06-01",
+            "name": "[parameters('ADF_Name')]",
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Sql/servers",
+            "apiVersion": "2014-04-01-preview",
+            "name": "[parameters('SQLServer_Name')]",
+            "location": "[parameters('location')]",
+            "tags": {},
+            "properties": {
+                "administratorLogin": "[parameters('administratorLogin')]",
+                "administratorLoginPassword": "[parameters('administratorLoginPassword')]",
+                "version": "12.0"
+            },
+            "resources": [
+                {
+                    "type": "databases",
+                    "apiVersion": "2017-10-01-preview",
+                    "name": "[parameters('ASDW_Name')]",
+                    "location": "[parameters('location')]",
+                    "dependsOn": [
+                        "[concat('Microsoft.Sql/servers/', parameters('SQLServer_Name'))]"
+                    ],
+                    "tags": {},
+                    "sku": {
+                        "name": "DW100c",
+                        "tier": "DataWarehouse"
+                    },
+                    "properties": {
+                        "collation": "[parameters('collation')]"
+                    }
+                },
+                {
+                    "type": "firewallrules",
+                    "apiVersion": "2014-04-01-preview",
+                    "name": "AllowAllWindowsAzureIps",
+                    "location": "[parameters('location')]",
+                    "dependsOn": [
+                        "[concat('Microsoft.Sql/servers/', parameters('SQLServer_Name'))]"
+                    ],
+                    "properties": {
+                        "endIpAddress": "0.0.0.0",
+                        "startIpAddress": "0.0.0.0"
+                    },
+                    "condition": true                }
+            ]
+        }
+    ]
+}
