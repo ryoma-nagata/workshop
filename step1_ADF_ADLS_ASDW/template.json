@@ -3,20 +3,27 @@
     "contentVersion": "1.0.0.0",
     "parameters":{
         "location": {
-            "type": "String"
+            "type": "String",
+            "defaultValue": "japaneast"
         },
-        "ADLS_Name":{
-                "type": "String"
+        "NamePrefix":{
+            "type":"string"
         },
-        "ADF_Name":{
-
-                "type": "String"
+        "ADLS_Suffix":{
+            "type": "String",
+            "defaultValue":"adls"
         },
-        "SQLServer_Name":{
-                "type": "String"
+        "ADF_Suffix":{
+            "type": "String",
+            "defaultValue":"adf"
         },
-        "ASDW_Name":{
-                "type": "String"
+        "SQLServer_Suffix":{
+            "type": "String",
+            "defaultValue":"sql"
+        },
+        "ASDW_Suffix":{
+                "type": "String",
+            "defaultValue":"sqldw"
         },
         "administratorLogin": {
             "type": "String"
@@ -32,7 +39,7 @@
         {
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-06-01",
-            "name": "[parameters('ADLS_Name')]",
+            "name": "[concat(parameters('NamePrefix'),parameters('ADLS_Suffix'))]",
             "location": "[parameters('location')]",
             "dependsOn": [],
             "tags": {},
@@ -49,17 +56,17 @@
         {
             "type": "Microsoft.DataFactory/factories",
             "apiVersion": "2018-06-01",
-            "name": "[parameters('ADF_Name')]",
+            "name": "[concat(parameters('NamePrefix'),'-',parameters('ADF_Suffix'))]",
             "location": "[parameters('location')]",
             "identity": {
                 "type": "SystemAssigned"
             },
-            "properties": {}
+            "properties": {}    
         },
         {
             "type": "Microsoft.Sql/servers",
             "apiVersion": "2014-04-01-preview",
-            "name": "[parameters('SQLServer_Name')]",
+            "name": "[concat(parameters('NamePrefix'),'-',parameters('SQLServer_Suffix'))]",
             "location": "[parameters('location')]",
             "tags": {},
             "properties": {
@@ -71,10 +78,10 @@
                 {
                     "type": "databases",
                     "apiVersion": "2017-10-01-preview",
-                    "name": "[parameters('ASDW_Name')]",
+            "name": "[concat(parameters('NamePrefix'),'-',parameters('ASDW_Suffix'))]",
                     "location": "[parameters('location')]",
                     "dependsOn": [
-                        "[concat('Microsoft.Sql/servers/', parameters('SQLServer_Name'))]"
+                        "[concat('Microsoft.Sql/servers/',concat(parameters('NamePrefix'),'-',parameters('SQLServer_Suffix')))]"
                     ],
                     "tags": {},
                     "sku": {
@@ -91,7 +98,7 @@
                     "name": "AllowAllWindowsAzureIps",
                     "location": "[parameters('location')]",
                     "dependsOn": [
-                        "[concat('Microsoft.Sql/servers/', parameters('SQLServer_Name'))]"
+                        "[concat('Microsoft.Sql/servers/',concat(parameters('NamePrefix'),'-',parameters('SQLServer_Suffix')))]"
                     ],
                     "properties": {
                         "endIpAddress": "0.0.0.0",
