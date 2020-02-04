@@ -33,8 +33,10 @@
         },
         "collation": {
             "type": "String",
-            "defaultValue":"Japanese_XJIS_100_CI_AS"
-
+            "defaultValue":"Japanese_XJIS_100_CI_AS",
+            "metadata":{
+                "description":"日本語環境での推奨値です" 
+            }
         }
     },
     "resources":[
