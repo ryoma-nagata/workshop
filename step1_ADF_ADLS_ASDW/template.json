@@ -22,7 +22,7 @@
             "defaultValue":"sql"
         },
         "ASDW_Suffix":{
-                "type": "String",
+            "type": "String",
             "defaultValue":"sqldw"
         },
         "administratorLogin": {
@@ -32,7 +32,9 @@
             "type": "SecureString"
         },
         "collation": {
-                "type": "String"
+            "type": "String",
+            "defaultValue":"Japanese_XJIS_100_CI_AS"
+
         }
     },
     "resources":[
