@@ -3,15 +3,15 @@
     "contentVersion": "1.0.0.0",
     "parameters":{
         "location": {
+            "defaultValue": "japaneast",
             "type": "String",
-            "defaultValue": "japaneast"
+            "metadata": {
+                "description": "東日本の場合はjapaneast"
+            }
         },
         "NamePrefix":{
-            "type":"string"
-        },
-        "ADLS_Suffix":{
-            "type": "String",
-            "defaultValue":"adls"
+            "type":"string",
+            "allowedValues" :["tet","tes3"] 
         },
         "ADF_Suffix":{
             "type": "String",
@@ -40,23 +40,6 @@
         }
     },
     "resources":[
-        {
-            "type": "Microsoft.Storage/storageAccounts",
-            "apiVersion": "2019-06-01",
-            "name": "[concat(parameters('NamePrefix'),parameters('ADLS_Suffix'))]",
-            "location": "[parameters('location')]",
-            "dependsOn": [],
-            "tags": {},
-            "sku": {
-                "name": "Standard_RAGRS"
-            },
-            "kind": "StorageV2",
-            "properties": {
-                "accessTier": "Hot",
-                "supportsHttpsTrafficOnly": true,
-                "isHnsEnabled": true
-            }
-        },
         {
             "type": "Microsoft.DataFactory/factories",
             "apiVersion": "2018-06-01",

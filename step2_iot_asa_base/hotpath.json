@@ -1,0 +1,174 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "defaultValue": "japaneast",
+            "type": "String",
+            "metadata": {
+                "description": "東日本の場合はjapaneast"
+            }
+        },
+        "NamePrefix": {
+            "type": "String",
+            "metadata": {
+                "description": "すべてのリソースの名称の接頭辞※小文字のみ"
+            }
+        },
+        "ADLS_Suffix":{
+            "type": "String",
+            "defaultValue":"adls"
+        },
+        "IoT_Suffix": {
+            "defaultValue": "iot",
+            "type": "String"
+        },
+        "ASA_Suffix": {
+            "defaultValue": "asa",
+            "type": "String"
+        }
+    },
+    "variables": {
+        "iotHubName": "[concat(parameters('NamePrefix'),'-',parameters('IoT_Suffix'))]",
+        "consumerGroupName": "[concat(variables('iotHubName'), '/events/streamanalytics')]",
+        "asaName": "[concat(parameters('NamePrefix'),'-',parameters('ASA_Suffix'))]",
+        "storageName":"[concat(parameters('NamePrefix'),parameters('ADLS_Suffix'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[variables('storageName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [],
+            "tags": {},
+            "sku": {
+                "name": "Standard_RAGRS"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot",
+                "supportsHttpsTrafficOnly": true,
+                "isHnsEnabled": true
+            },
+            "resources": [
+                {
+                    "name": "default/raw",
+                    "type": "blobServices/containers",
+                    "apiVersion": "2018-07-01",
+                    "dependsOn": [
+                         "[concat('Microsoft.Storage/storageAccounts/', variables('storageName'))]"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.Devices/IotHubs",
+            "apiVersion": "2019-07-01-preview",
+            "name": "[variables('iotHubName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "S1",
+                "capacity": 1
+            }
+            
+        },
+        {
+            "type": "Microsoft.Devices/iotHubs/eventhubEndpoints/ConsumerGroups",
+            "apiVersion": "2019-11-04",
+            "name": "[variables('consumerGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Devices/IotHubs', variables('iotHubName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.StreamAnalytics/streamingjobs",
+            "apiVersion": "2016-03-01",
+            "name": "[variables('asaName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Devices/IotHubs', variables('iotHubName'))]"
+            ],
+            "properties": {
+                "sku": {
+                    "name": "standard"
+                },
+                "outputErrorPolicy": "stop",
+                "eventsOutOfOrderPolicy": "adjust",
+                "eventsOutOfOrderMaxDelayInSeconds": 0,
+                "eventsLateArrivalMaxDelayInSeconds": 5,
+                "dataLocale": "en-US",
+                "jobType": "Cloud",
+                "transformation": {
+                    "name": "Transformation",
+                    "properties": {
+                        "query": "SELECT\r\n    *\r\nINTO\r\n    [Blob]\r\nFROM\r\n    [IoThub]",
+                        "streamingUnits": 1
+                    }
+                },
+                "compatibilityLevel": "1.0"
+            }
+        },
+        {
+            "type": "Microsoft.StreamAnalytics/streamingjobs/inputs",
+            "apiVersion": "2016-03-01",
+            "name": "[concat(variables('asaName'), '/IoThub')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.StreamAnalytics/streamingjobs',variables('asaName'))]",
+                "[resourceId(concat('Microsoft.Devices/IotHubs/eventhubEndpoints/ConsumerGroups'),variables('iotHubName'),'events','streamanalytics')]"
+            ],
+            "properties": {
+                "type": "Stream",
+                "datasource": {
+                    "type": "Microsoft.Devices/IotHubs",
+                    "properties": {
+                        "iotHubNamespace": "[variables('iotHubName')]",
+                        "sharedAccessPolicyName": "iothubowner",
+                        "sharedAccessPolicyKey":  "[listKeys(resourceId('Microsoft.Devices/IotHubs',variables('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).value[0].primaryKey]",
+                        "endpoint": "messages/events",
+                        "consumerGroupName":  "streamanalytics"
+                        }
+                },
+                "serialization": {
+                    "type": "Json",
+                    "properties": {
+                        "encoding": "UTF8"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.StreamAnalytics/streamingjobs/outputs",
+            "apiVersion": "2016-03-01",
+            "name": "[concat(variables('asaName'), '/Blob')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.StreamAnalytics/streamingjobs',variables('asaName'))]",
+                "[concat('Microsoft.Storage/storageAccounts/', variables('storageName'))]"
+            ],
+            "properties": {
+                "datasource": {
+                    "type": "Microsoft.Storage/Blob",
+                    "properties": {
+                       "storageAccounts": [
+                    {
+                      "accountName": "[variables('storageName')]",
+                      "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts',variables('storageName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+                    }
+                ],
+                        "container": "raw",
+                        "pathPattern": "telemetry",
+                        "dateFormat": "yyyy/MM/dd",
+                        "timeFormat": "HH"
+                    }
+                },
+                "serialization": {
+                    "type": "Json",
+                    "properties": {
+                        "encoding": "UTF8",
+                        "format": "Array"
+                    }
+                }
+            }
+        }
+    ]
+}   

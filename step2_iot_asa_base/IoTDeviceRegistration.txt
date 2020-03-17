@@ -1,0 +1,5 @@
+azure 上のpower Shellから下記を実行 
+az account set --subscription "subscriptionId"
+az extension add --name azure-cli-iot-ext 
+az iot hub device-identity create --hub-name "<IoTHubName>" --device-id "MyASAIoTDevice"
+az iot hub device-identity show-connection-string --hub-name "<IoTHubName>" --device-id "<deviceName>" --output table
